@@ -5,6 +5,11 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 
+#define DEBUG_LOG(fmt, ...) \
+	do { \
+		printf("%s@%d: "fmt"\n", __func__, __LINE__, ##__VA_ARGS__); \
+	} while (0)
+
 #define CLIENT_NUM 20
 
 typedef struct server {
@@ -22,14 +27,14 @@ int main(int argc, char **argv)
 
 	err = server_listen(&server);
 	if (err) {
-		printf("Failed to listen.\n");
+		DEBUG_LOG("Failed to listen.");
 		return err;
 	}
 
 	for (;;) {
 		err = server_accept(&server);
 		if (err) {
-			printf("Failed to accept connection.\n");
+			DEBUG_LOG("Failed to accept connection.");
 			return err;
 		}
 	}
@@ -48,21 +53,22 @@ int server_listen(server_t *server)
 	err = (server->listen_fd = socket(AF_LOCAL, SOCK_STREAM, 0));
 	if (err == -1) {
 		perror("socket");
-		printf("Failed to create socket endpoint.\n");
+		DEBUG_LOG("Failed to create socket endpoint.");
 		return err;
 	}
 
 	err = bind(server->listen_fd, (struct sockaddr *)&server_addr,
 			sizeof(struct sockaddr_un));
 	if (err == -1) {
-		printf("Failed to bind socket to address.\n");
+		perror("bind");
+		DEBUG_LOG("Failed to bind socket to address.");
 		return err;
 	}
 
 	err = listen(server->listen_fd, CLIENT_NUM);
 	if (err == -1) {
 		perror("listen");
-		printf("Failed to put socket in passive mode.\n");
+		DEBUG_LOG("Failed to put socket in passive mode.");
 		return err;
 	}
 
@@ -82,7 +88,7 @@ int server_accept(server_t *server)
 			(struct sockaddr *)&client_addr, &client_len));
 	if (err == -1) {
 		perror("accept");
-		printf("Failed accepting connections.\n");
+		DEBUG_LOG("Failed accepting connections.");
 		return err;
 	}
 
@@ -91,7 +97,7 @@ int server_accept(server_t *server)
 	err = pthread_create(&srv_thread, NULL, srv_handler, (void *)new_fd);
 	if (err < 0) {
 		perror("pthread_create");
-		printf("Error while creating thread!\n");
+		DEBUG_LOG("Error while creating thread!");
 		return err;
 	}
 
@@ -113,7 +119,7 @@ void *srv_handler(void *data)
 			perror("read");
 			continue;
 		}
-		printf("%s@%d: id #%d: after read(), n = %d.\n", __FUNCTION__, __LINE__, sk, n);
-		printf("%s@%d: id #%d: buffer received: |%s|.\n", __FUNCTION__, __LINE__, sk, buffer);
+		DEBUG_LOG("id #%d: after read(), n = %d.", sk, n);
+		DEBUG_LOG("id #%d: buffer received: |%s|.", sk, buffer);
 	}
 }
