@@ -5,6 +5,11 @@
 #include <time.h>
 #include <unistd.h>
 
+#define DEBUG_LOG(fmt, ...) \
+	do { \
+		printf("%s@%d: "fmt"\n", __func__, __LINE__, ##__VA_ARGS__); \
+	} while (0)
+
 #define NUM_CLIENTS 15
 
 void *client_handler(void *data);
@@ -20,14 +25,12 @@ int main(int argc, char **argv)
 	for (i = 0; i < NUM_CLIENTS; i++) {
 		if (pthread_create(&client_thread, NULL, client_handler, (void *)i) < 0) {
 			perror("pthread_create");
-			printf("%s@%d: cannot create a thread.\n", __FUNCTION__, __LINE__);
-
+			DEBUG_LOG("Cannot create a thread.");
 			return;
 		} else {
-            printf("%s@%d: client #%d has been created.\n", __FUNCTION__, __LINE__, i);
-        }
+			DEBUG_LOG("Client #%d has been created.", i);
+		}
 		sleep(5);
-
 	}
 
 	return 0;
@@ -45,7 +48,8 @@ void *client_handler(void *data)
 	int n;
 
 	if ((sock = socket(AF_UNIX, SOCK_STREAM, 0)) < 0) {
-		printf("%s@%d: cannot create a socket!\n", __FUNCTION__, __LINE__);
+		perror("socket");
+		DEBUG_LOG("Cannot create a socket.");
 	}
 
 	memset(&server_addr, '\0', sizeof(server_addr));
@@ -54,7 +58,7 @@ void *client_handler(void *data)
 	err = connect(sock, (struct sockaddr *)&server_addr, sizeof(server_addr));
 	if (err < 0) {
 		perror("connect");
-		printf("Error while creating socket.\n");
+		DEBUG_LOG("Cannot connect to the socket.");
 		return;
 	}
 
@@ -63,13 +67,12 @@ void *client_handler(void *data)
 		memset(datetime_str, '\0', sizeof(datetime_str));
 		sprintf(datetime_str, "%s", ctime(&result));
 		datetime_str[24] = '\0';
-		printf("%s@%d: datetime_str: |%s|.\n", __FUNCTION__, __LINE__, datetime_str);
+		DEBUG_LOG("datetime_str: |%s|.", datetime_str);
 		len = strlen(datetime_str);
-		printf("%s@%d: after ctime() work, len = %d.\n", __FUNCTION__, __LINE__, len);
+		DEBUG_LOG("after ctime() work, len = %d.", len);
 		write(sock, datetime_str, strlen(datetime_str));
 		sleep(2);
 	}
-
-    printf("%s@%d: RETURN FROM HANDLER!\n", __FUNCTION__, __LINE__);
+	DEBUG_LOG("Return from handler!");
 	return 0;
 }
