@@ -23,11 +23,12 @@ int main(int argc, char **argv)
 			printf("%s@%d: cannot create a thread.\n", __FUNCTION__, __LINE__);
 
 			return;
-		}
+		} else {
+            printf("%s@%d: client #%d has been created.\n", __FUNCTION__, __LINE__, i);
+        }
 		sleep(5);
 
 	}
-	pthread_exit(NULL);
 
 	return 0;
 }
@@ -42,27 +43,23 @@ void *client_handler(void *data)
 	int len;
 	char buffer[256];
 	int n;
-	printf("%s@%d: called, client_id = %d.\n", __FUNCTION__, __LINE__, client_id);
+
 	if ((sock = socket(AF_UNIX, SOCK_STREAM, 0)) < 0) {
 		printf("%s@%d: cannot create a socket!\n", __FUNCTION__, __LINE__);
 	}
+
 	memset(&server_addr, '\0', sizeof(server_addr));
 	server_addr.sun_family = AF_UNIX;
 	strncpy(server_addr.sun_path, "./srvsock", strlen("./srvsock"));
-	printf("%s@%d: after creating socket.\n", __FUNCTION__, __LINE__);
 	err = connect(sock, (struct sockaddr *)&server_addr, sizeof(server_addr));
-	printf("%s@%d: after connect() call, err = %d.\n", __FUNCTION__, __LINE__, err);
-
 	if (err < 0) {
 		perror("connect");
-		printf("%s@%d: after creating socket.\n", __FUNCTION__, __LINE__);
-
+		printf("Error while creating socket.\n");
 		return;
 	}
-	printf("%s@%d: after calling connect()...\n", __FUNCTION__, __LINE__);
+
 	while (1) {
 		result = time(NULL);
-		printf("%s@%d: after getting time, it looks like: |%s|.\n", __FUNCTION__, __LINE__, ctime(&result));
 		memset(datetime_str, '\0', sizeof(datetime_str));
 		sprintf(datetime_str, "%s", ctime(&result));
 		datetime_str[24] = '\0';
@@ -73,14 +70,6 @@ void *client_handler(void *data)
 		sleep(2);
 	}
 
-	printf("%s@%d: after sending date-time...\n", __FUNCTION__, __LINE__);
-
-	memset(buffer, '\0', sizeof(buffer));
-	n = 0;
-	n = read(sock, buffer, 255);
-	printf("%s@%d: buffer received: |%s|.\n", __FUNCTION__, __LINE__, buffer);
-
-	printf("%s@%d: returning...\n", __FUNCTION__, __LINE__);
-
+    printf("%s@%d: RETURN FROM HANDLER!\n", __FUNCTION__, __LINE__);
 	return 0;
 }
