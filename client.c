@@ -37,36 +37,40 @@ int main(int argc, char **argv)
 
 void *client_handler(void *data)
 {
-	int sock;
+	int sk;
 	struct sockaddr_un server_addr;
 	int err;
-	time_t result;
-	char buf[5];
+	char buf[16];
 	int n;
 
-	if ((sock = socket(AF_UNIX, SOCK_STREAM, 0)) < 0) {
+	if ((sk = socket(AF_UNIX, SOCK_STREAM, 0)) < 0) {
 		perror("socket");
 		DEBUG_LOG("Cannot create a socket.");
-        return;
-	} else {
-        DEBUG_LOG("Thread created, sock: %d.", sock);
-    }
+		return;
+	}
 
 	memset(&server_addr, '\0', sizeof(server_addr));
 	server_addr.sun_family = AF_UNIX;
 	strncpy(server_addr.sun_path, "./srvsock", strlen("./srvsock"));
-	err = connect(sock, (struct sockaddr *)&server_addr, sizeof(server_addr));
+	err = connect(sk, (struct sockaddr *)&server_addr, sizeof(server_addr));
 	if (err < 0) {
 		perror("connect");
 		DEBUG_LOG("Cannot connect to the socket.");
+		return;
 	}
 
 	while (1) {
-		result = time(NULL);
 		memset(buf, '\0', sizeof(buf));
 		sprintf(buf, "%s", rand() % 10 ? "ABCD" : "PING");
+		DEBUG_LOG("initially, buf: |%s|.", buf);
+		n = write(sk, buf, strlen(buf));
+		DEBUG_LOG("after write() n = %d.", n);
+		memset(buf, '\0', sizeof(buf));
+		while ((n = read(sk, buf, sizeof(buf) - 1)) < 0) {
+			DEBUG_LOG("still reading...");
+		}
+		DEBUG_LOG("after read() n = %d.", n);
 		DEBUG_LOG("buf: |%s|.", buf);
-		write(sock, buf, strlen(buf));
 		sleep((rand() % 10) + 1);
 	}
 

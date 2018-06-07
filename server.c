@@ -25,7 +25,7 @@ int main(int argc, char **argv)
 	int err = 0;
 	server_t server = { 0 };
 
-    DEBUG_LOG("Creating server...");
+	DEBUG_LOG("Creating server...");
 	err = server_listen(&server);
 	if (err) {
 		DEBUG_LOG("Failed to listen.");
@@ -104,9 +104,7 @@ int server_accept(server_t *server)
 		perror("pthread_create");
 		DEBUG_LOG("Error while creating thread!");
 		return err;
-	} else {
-        DEBUG_LOG("Created thread successfully.");
-    }
+	}
 
 	return 0;
 }
@@ -119,20 +117,23 @@ void *srv_handler(void *data)
 	int n = 0;
 	char buf[256];
 
-    DEBUG_LOG("Received sk = %d.\n", sk);
-
 	while (1) {
+		DEBUG_LOG("at the very beginning of while iteration...");
 		memset(buf, '\0', sizeof(buf));
-		n = read(sk, buf, sizeof(buf) - 1);
+		while ((n = read(sk, buf, sizeof(buf) - 1)) > 0) {
+			DEBUG_LOG("still reading...");
+		}
+		DEBUG_LOG("after read, n = %d.", n);
 		if (n < 0) {
 			perror("read");
 			break;
 		}
 		DEBUG_LOG("id #%d: buffer received: |%s|, n = %d.", sk, buf, n);
-        if (strstr(buf, "PING")) {
-            DEBUG_LOG("Ping received!");
-        } else {
-            DEBUG_LOG("Skipping...");
-        }
+		if (strstr(buf, "PING")) {
+			DEBUG_LOG("Ping received!");
+			write(sk, "PONG", strlen(buf));
+		} else {
+			DEBUG_LOG("Skipping...");
+		}
 	}
 }
