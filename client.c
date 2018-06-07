@@ -23,10 +23,9 @@ int main(int argc, char **argv)
 
 	srand(time(NULL));
 	for (i = 0; i < NUM_CLIENTS; i++) {
-		if (pthread_create(&client_thread, NULL, client_handler, &i) < 0) {
+		if (pthread_create(&client_thread, NULL, client_handler, NULL) < 0) {
 			perror("pthread_create");
 			DEBUG_LOG("Cannot create a thread.");
-			return;
 		} else {
 			DEBUG_LOG("Client #%d has been created.", i);
 		}
@@ -35,22 +34,23 @@ int main(int argc, char **argv)
 
 	return 0;
 }
+
 void *client_handler(void *data)
 {
-	int client_id = *(int *)data;
 	int sock;
 	struct sockaddr_un server_addr;
 	int err;
 	time_t result;
-	char datetime_str[256];
-	int len;
-	char buffer[256];
+	char buf[5];
 	int n;
 
 	if ((sock = socket(AF_UNIX, SOCK_STREAM, 0)) < 0) {
 		perror("socket");
 		DEBUG_LOG("Cannot create a socket.");
-	}
+        return;
+	} else {
+        DEBUG_LOG("Thread created, sock: %d.", sock);
+    }
 
 	memset(&server_addr, '\0', sizeof(server_addr));
 	server_addr.sun_family = AF_UNIX;
@@ -59,18 +59,15 @@ void *client_handler(void *data)
 	if (err < 0) {
 		perror("connect");
 		DEBUG_LOG("Cannot connect to the socket.");
-		return;
 	}
 
 	while (1) {
 		result = time(NULL);
-		memset(datetime_str, '\0', sizeof(datetime_str));
-		sprintf(datetime_str, "%s", ctime(&result));
-		datetime_str[24] = '\0';
-		DEBUG_LOG("datetime_str: |%s|.", datetime_str);
-		len = strlen(datetime_str);
-		write(sock, datetime_str, strlen(datetime_str));
-		sleep(1);
+		memset(buf, '\0', sizeof(buf));
+		sprintf(buf, "%s", rand() % 10 ? "ABCD" : "PING");
+		DEBUG_LOG("buf: |%s|.", buf);
+		write(sock, buf, strlen(buf));
+		sleep((rand() % 10) + 1);
 	}
 
 	return 0;
