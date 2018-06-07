@@ -69,10 +69,9 @@ void *client_handler(void *data)
 		datetime_str[24] = '\0';
 		DEBUG_LOG("datetime_str: |%s|.", datetime_str);
 		len = strlen(datetime_str);
-		DEBUG_LOG("after ctime() work, len = %d.", len);
 		write(sock, datetime_str, strlen(datetime_str));
 		sleep(2);
 	}
-	DEBUG_LOG("Return from handler!");
+
 	return 0;
 }

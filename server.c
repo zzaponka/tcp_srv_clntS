@@ -119,7 +119,6 @@ void *srv_handler(void *data)
 			perror("read");
 			continue;
 		}
-		DEBUG_LOG("id #%d: after read(), n = %d.", sk, n);
 		DEBUG_LOG("id #%d: buffer received: |%s|.", sk, buffer);
 	}
 }
