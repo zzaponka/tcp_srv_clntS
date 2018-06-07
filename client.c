@@ -10,7 +10,7 @@
 		printf("%s@%d: "fmt"\n", __func__, __LINE__, ##__VA_ARGS__); \
 	} while (0)
 
-#define NUM_CLIENTS 15
+#define NUM_CLIENTS 3
 
 void *client_handler(void *data);
 
@@ -23,21 +23,21 @@ int main(int argc, char **argv)
 
 	srand(time(NULL));
 	for (i = 0; i < NUM_CLIENTS; i++) {
-		if (pthread_create(&client_thread, NULL, client_handler, (void *)i) < 0) {
+		if (pthread_create(&client_thread, NULL, client_handler, &i) < 0) {
 			perror("pthread_create");
 			DEBUG_LOG("Cannot create a thread.");
 			return;
 		} else {
 			DEBUG_LOG("Client #%d has been created.", i);
 		}
-		sleep(5);
 	}
+	pthread_exit(NULL);
 
 	return 0;
 }
 void *client_handler(void *data)
 {
-	int client_id = (int )data;
+	int client_id = *(int *)data;
 	int sock;
 	struct sockaddr_un server_addr;
 	int err;
@@ -70,7 +70,7 @@ void *client_handler(void *data)
 		DEBUG_LOG("datetime_str: |%s|.", datetime_str);
 		len = strlen(datetime_str);
 		write(sock, datetime_str, strlen(datetime_str));
-		sleep(2);
+		sleep(1);
 	}
 
 	return 0;
