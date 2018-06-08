@@ -1,4 +1,6 @@
+#include <poll.h>
 #include <pthread.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -7,8 +9,10 @@
 
 #include "debug.h"
 
+#define TIMEOUT_SRV 60000
+#define CLIENT_NUM 64
 
-#define CLIENT_NUM 5
+static volatile int run = 1;
 
 typedef struct server {
 	int listen_fd;
@@ -17,20 +21,22 @@ typedef struct server {
 int server_listen(server_t *server);
 int server_accept(server_t *server);
 void *srv_handler(void *data);
+void int_handler(int num);
 
 int main(int argc, char **argv)
 {
 	int err = 0;
 	server_t server = { 0 };
 
+	signal(SIGINT, int_handler);
 	DEBUG_LOG("Creating server...");
 	err = server_listen(&server);
 	if (err) {
 		DEBUG_LOG("Failed to listen.");
 		return err;
 	} else {
-        DEBUG_LOG("Listening successfully, err = %d.", err);
-    }
+		DEBUG_LOG("Listening successfully, err = %d.", err);
+	}
 
 	for (;;) {
 		err = server_accept(&server);
@@ -39,8 +45,9 @@ int main(int argc, char **argv)
 			return err;
 		} else {
 			DEBUG_LOG("Accepted successfully, err = %d.", err);
-        }
+		}
 	}
+
 	return 0;
 }
 
@@ -115,23 +122,49 @@ void *srv_handler(void *data)
 	int n = 0;
 	char buf[256];
 
-	while (1) {
-		DEBUG_LOG("at the very beginning of while iteration...");
-		memset(buf, '\0', sizeof(buf));
-		while ((n = read(sk, buf, sizeof(buf) - 1)) > 0) {
-			DEBUG_LOG("still reading...");
-		}
-		DEBUG_LOG("after read, n = %d.", n);
-		if (n < 0) {
-			perror("read");
-			break;
-		}
-		DEBUG_LOG("id #%d: buffer received: |%s|, n = %d.", sk, buf, n);
-		if (strstr(buf, "PING")) {
-			DEBUG_LOG("Ping received!");
-			write(sk, "PONG", strlen(buf));
-		} else {
-			DEBUG_LOG("Skipping...");
+	struct pollfd ufds[1];
+	int res;
+
+	ufds[0].fd = sk;
+	ufds[0].events = POLLIN;
+
+	while (run) {
+		res = poll(ufds, 1, TIMEOUT_SRV);
+		if (res == -1) {
+			perror("poll");
+			DEBUG_LOG_SK("error while polling.");
+		} else if (res == 0) {
+			DEBUG_LOG_SK("timeout while polling.");
+			write(sk, "BYE", strlen("BYE"));
+			close(sk);
+			return;
+		} else if (ufds[0].revents & POLLIN) {
+			memset(buf, '\0', sizeof(buf));
+			n = read(sk, buf, sizeof(buf) - 1);
+			if (n < 0) {
+				perror("read");
+				DEBUG_LOG_SK("error while reading.");
+				continue;
+			}
+			DEBUG_LOG_SK("id #%d: buffer received: |%s|, n = %d.", sk, buf, n);
+			if (strstr(buf, "PING")) {
+				write(sk, "PONG", strlen("PONG"));
+			}
 		}
 	}
+
+	DEBUG_LOG("the server has been terminated!");
+	write(sk, "BYE", strlen("BYE"));
+	close(sk);
+	return;
+}
+
+void int_handler(int num)
+{
+	signal(num, SIG_IGN);
+	DEBUG_LOG("+--------------------------------------------------------");
+	DEBUG_LOG("| receiving Ctrl+C!");
+	DEBUG_LOG("+--------------------------------------------------------");
+	run = 0;
+	pthread_exit(NULL);
 }
