@@ -5,10 +5,8 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 
-#define DEBUG_LOG(fmt, ...) \
-	do { \
-		printf("%s@%d: "fmt"\n", __func__, __LINE__, ##__VA_ARGS__); \
-	} while (0)
+#include "debug.h"
+
 
 #define CLIENT_NUM 5
 

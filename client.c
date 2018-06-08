@@ -5,10 +5,7 @@
 #include <time.h>
 #include <unistd.h>
 
-#define DEBUG_LOG(fmt, ...) \
-	do { \
-		printf("%s@%d: "fmt"\n", __func__, __LINE__, ##__VA_ARGS__); \
-	} while (0)
+#include "debug.h"
 
 #define NUM_CLIENTS 3
 
